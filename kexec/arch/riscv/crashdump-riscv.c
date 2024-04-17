@@ -37,6 +37,7 @@ static unsigned long long get_page_offset(struct kexec_info *info)
 int load_elfcorehdr(struct kexec_info *info)
 {
 	struct memory_range crashkern_range = {0};
+	struct memory_range ram_range = {0};
 	struct memory_range *ranges = NULL;
 	unsigned long start = 0;
 	unsigned long end = 0;
@@ -74,9 +75,23 @@ int load_elfcorehdr(struct kexec_info *info)
 		fprintf(stderr, "Cannot determine kernel physical bss addr\n");
 		return -EINVAL;
 	}
+	
 	crashkern_range.start = start;
 	crashkern_range.end = end;
 	crashkern_range.type = RANGE_RESERVED;
+
+	ret = parse_iomem_single("System RAM\n", &start, &end);
+	if (ret) {
+		fprintf(stderr, "Cannot determine system ram addr\n");
+		return -EINVAL;
+	}
+	
+	ram_range.start = start;
+	ram_range.end = end;
+	ram_range.type = RANGE_PMEM;
+	
+	printf("crash_range %llx-%llx\n", crashkern_range.start, crashkern_range.end);
+	printf("ram_range %llx-%llx\n", ram_range.start, ram_range.end);
 
 	ranges = info->memory_range;
 	for (i = 0; i < info->memory_ranges; i++) {
@@ -91,7 +106,21 @@ int load_elfcorehdr(struct kexec_info *info)
 	}
 
 	ret = mem_regions_alloc_and_exclude(&crash_mem_ranges,
+					    &ram_range);
+
+	printf("dump crash mem ranges before\n");
+	for (i = 0; i < crash_mem_ranges.size; i++) {
+		printf("%llx-%llx\n", crash_mem_ranges.ranges[i].start, crash_mem_ranges.ranges[i].end);
+	}
+
+	ret = mem_regions_alloc_and_exclude(&crash_mem_ranges,
 					    &crashkern_range);
+		
+	printf("dump crash mem ranges\n");
+	for (i = 0; i < crash_mem_ranges.size; i++) {
+		printf("%llx-%llx\n", crash_mem_ranges.ranges[i].start, crash_mem_ranges.ranges[i].end);
+	}
+		
 	if (ret) {
 		fprintf(stderr, "Could not exclude crashkern_range\n");
 		return ret;

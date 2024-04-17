@@ -365,6 +365,7 @@ static int dtb_add_memory_region(char *dtb, int nodeoffset,
 	uint64_t addr = 0;
 	uint64_t size = 0;
 	const char *reg = NULL;
+	const char *name = NULL;
 	int prop_size = 0;
 	int offset = 0;
 	int entry_size = 0;
@@ -386,6 +387,11 @@ static int dtb_add_memory_region(char *dtb, int nodeoffset,
 	 * an arbitary number of <address><size> pairs
 	 */
 	entry_size = (root_addr_cells + root_size_cells) * sizeof(uint32_t);
+	
+	name = fdt_get_name(dtb, nodeoffset, &prop_size);
+	printf("dtb_add_memory_region get name %s\n", name);
+	if(strcmp(name, "cma_region_uncached") == 0) return 0;
+	
 	reg = fdt_getprop(dtb, nodeoffset, "reg", &prop_size);
 	if (!reg) {
 		dbgprintf("Warning: Malformed memory region with no reg property (%s) !\n",

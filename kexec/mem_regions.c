@@ -92,6 +92,14 @@ int mem_regions_exclude(struct memory_ranges *ranges,
 		 * We assume that crash area is fully contained in
 		 * some larger memory area.
 		 */
+		if (r->start <= range->start &&
+				r->end > range->start && 
+				r->end <= range->end && 
+				r->type == RANGE_RAM &&
+				range->type == RANGE_PMEM) {
+			r->start = range->start;
+			break;
+		} else
 		if (r->start <= range->start && r->end >= range->end) {
 			if (r->start == range->start) {
 				if (r->end == range->end)
